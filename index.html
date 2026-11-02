@@ -427,6 +427,9 @@ body[data-view=scan] .v-scan, body[data-view=list] .v-list, body[data-view=repor
 .ss.now{ border-color:#B5294A; background:#FDE7EF; color:#7B0D30; } .ss.now span{ background:#B5294A; }
 .sd-ck-h{ font-weight:800; font-size:.95rem; margin:14px 0 4px; }
 #sdWarn .ck{ display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px dashed #E3E7EE; font-size:.9rem; }
+#lastCard .lc-qty{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:.95rem; color:#3A1A28; font-weight:600; }
+#lastCard .lc-qty .qb{ width:40px; height:40px; border-radius:12px; border:1.5px solid #E7B7C8; background:#fff; font-size:1.3rem; font-weight:800; color:#7B0D30; }
+#lastCard .lc-qty b{ min-width:34px; text-align:center; font-size:1.25rem; color:#1B5E20; } #lastCard .lc-qty b.short{ color:#C62828; }
 #sdWarn .ck i{ font-style:normal; flex:0 0 22px; font-weight:800; }
 #sdWarn .ck.ok i{ color:#2E7D32; } #sdWarn .ck.no i{ color:#C2410C; } #sdWarn .ck.no{ color:#5A2A07; }
 .sa-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
@@ -519,6 +522,9 @@ code{ font-family:'Sarabun',sans-serif!important; font-weight:700; color:#8A1538
 #missingTable input[type=checkbox]{ width:18px; height:18px; }
 
 /* v3.31 dropdown เลือกหลายชั้น */
+/* v3.37 ช่องเลือกที่ตั้งตอนเพิ่มทีมมีรายการทุกครั้งที่เปิดระบบ (เดิมต้องอัปโหลด Excel ใหม่ก่อน) · ปรับข้อความรุ่นไฟล์ */
+/* v3.36 นับครุภัณฑ์หลายบรรทัด (เลขย่อย ERP) แยกบรรทัด · จำนวนที่พบ · รวมข้อมูลยึด Sheet ล่าสุด · ไฟล์แจกไม่มี PIN ตัวจริง — ต้องใช้ Apps Script v3.7 */
+/* v3.35 ใช้คำว่า "ตัวหลัก" แทน "แม่" ทุกจุดที่ผู้ใช้เห็น */
 /* v3.34 ลบรายการเกินทะเบียนได้ (ยิงผิด) — ต้องใช้ Apps Script v3.6 */
 .msd{ position:relative; }
 .msd-btn{ width:100%; min-height:40px; border:1.5px solid #C9D0DB; border-radius:12px; background:#fff; padding:6px 36px 6px 12px; text-align:left; font-family:inherit; font-size:.9rem; color:#1C0A12; position:relative; cursor:pointer; }
@@ -734,7 +740,7 @@ code{ font-family:'Sarabun',sans-serif!important; font-weight:700; color:#8A1538
   <div class="pv-sub">ผู้ดูแลระบบไม่ต้องแจ้ง · ดูว่าทีมใดตรวจเสร็จแล้ว ครบทุกทีมแล้วไป ⚙️ ตั้งค่า → รวมข้อมูล (Merge)</div>
   <div class="sa-top"><div id="saSum" class="sa-sum">—</div><button id="saRefresh" class="rp-mini" style="min-width:120px">🔄 ดึงสถานะล่าสุด</button></div>
   <div id="saList"></div>
-  <div class="sd-tip">ข้อมูลจาก Google Sheet Tab "สถานะทีม" · ต้องใช้ Apps Script v3.6</div>
+  <div class="sd-tip">ข้อมูลจาก Google Sheet Tab "สถานะทีม" · ต้องใช้ Apps Script v3.7</div>
  </div>
 </div>
 
@@ -764,11 +770,11 @@ code{ font-family:'Sarabun',sans-serif!important; font-weight:700; color:#8A1538
 <div class="table-card mx-auto" style="max-width:1200px;display:none;" id="internalTableCard">
   <div class="table-card-header">
     <span>🔵 ทะเบียนควบคุมภายใน — ชิ้นย่อยที่ยิงแล้ว</span>
-    <span class="badge" style="background:#e3f2fd;color:#1565c0;border-radius:20px;font-size:0.72rem;padding:4px 10px;">ป้ายมีขีด -1 -2 … · ไม่นับเข้ารายงาน สตง. · ต้องยิงหรือพิมพ์เลขแม่แยก</span>
+    <span class="badge" style="background:#e3f2fd;color:#1565c0;border-radius:20px;font-size:0.72rem;padding:4px 10px;">ป้ายมีขีด -1 -2 … · ไม่นับเข้ารายงาน สตง. · ต้องยิงหรือพิมพ์เลขตัวหลักแยก</span>
   </div>
   <div class="table-scroll">
     <table class="table table-hover align-middle">
-      <thead><tr><th>สติกเกอร์</th><th>ชื่อชิ้น</th><th>รหัสแม่</th><th>ชื่อแม่ในทะเบียน</th><th>แม่นับแล้ว?</th><th>เวลา</th><th>หมายเหตุ</th><th></th></tr></thead>
+      <thead><tr><th>สติกเกอร์</th><th>ชื่อชิ้น</th><th>เลขตัวหลัก</th><th>ชื่อตัวหลักในทะเบียน</th><th>ตัวหลักนับแล้ว?</th><th>เวลา</th><th>หมายเหตุ</th><th></th></tr></thead>
       <tbody id="internalTableBody"></tbody>
     </table>
   </div>
@@ -847,7 +853,7 @@ code{ font-family:'Sarabun',sans-serif!important; font-weight:700; color:#8A1538
     <div class="small text-muted mt-1" style="font-size:0.65rem;">ห้ามซ้ำกับ PIN ทีม · เว้นว่าง = ไม่ใช้ (แผงเปิดด้วย Ctrl+Shift+Click เหมือนเดิม)</div>
   </div>
   <button class="btn btn-sm w-100 mb-2" style="background:var(--pink);color:white;border-radius:20px;" id="devSaveOrgBtn">💾 บันทึกข้อมูลองค์กร</button>
-</div><div class="dev-pane" data-pane="data"><div class="dev-section">📂 ข้อมูลครุภัณฑ์</div><div class="dev-hint">อัปโหลด Template v3 (ชีตบัญชีครุภัณฑ์ + ชิ้นย่อย) — อัปโหลดใหม่จะแทนที่ทะเบียนเดิม ผลการยิงไม่หาย</div>
+</div><div class="dev-pane" data-pane="data"><div class="dev-section">📂 ข้อมูลครุภัณฑ์</div><div class="dev-hint">อัปโหลด Template v5 (ชีตบัญชีครุภัณฑ์ + ชิ้นย่อย) — อัปโหลดใหม่จะแทนที่ทะเบียนเดิม ผลการยิงไม่หาย</div>
   <div id="dataStatus" class="mb-3"></div>
   <div id="uploadHost"></div>
   <button class="btn btn-sm btn-warning w-100 mb-1" id="devReloadUploadBtn" style="display:none">📂 อัปโหลด Excel บัญชีครุภัณฑ์</button>
@@ -1028,6 +1034,27 @@ code{ font-family:'Sarabun',sans-serif!important; font-weight:700; color:#8A1538
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// v3.36 เก็บหน้าเว็บต้นฉบับไว้ตั้งแต่ก่อนระบบวาดหน้าจอ — ใช้สร้างไฟล์แจก (ไม่ติดข้อมูลบนจอผู้ดูแล)
+const PRISTINE_HTML='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+// v3.36 แฮช PIN (SHA-256 วนซ้ำ) — ไฟล์แจกเก็บเฉพาะแฮช ไม่มีตัวเลข PIN
+function _sha256(str){
+  const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const b=[...unescape(encodeURIComponent(str))].map(c=>c.charCodeAt(0)); const l=b.length*8; b.push(0x80); while(b.length%64!==56) b.push(0);
+  for(let i=7;i>=0;i--) b.push(i>=4?0:(l>>>(i*8))&255);
+  let H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]; const r=(x,n)=>(x>>>n)|(x<<(32-n));
+  for(let o=0;o<b.length;o+=64){ const w=new Array(64); for(let i=0;i<16;i++) w[i]=(b[o+i*4]<<24)|(b[o+i*4+1]<<16)|(b[o+i*4+2]<<8)|b[o+i*4+3];
+    for(let i=16;i<64;i++){ const s0=r(w[i-15],7)^r(w[i-15],18)^(w[i-15]>>>3), s1=r(w[i-2],17)^r(w[i-2],19)^(w[i-2]>>>10); w[i]=(w[i-16]+s0+w[i-7]+s1)|0; }
+    let [a,bb,c,d,e,f,g,h]=H;
+    for(let i=0;i<64;i++){ const t1=(h+(r(e,6)^r(e,11)^r(e,25))+((e&f)^(~e&g))+K[i]+w[i])|0, t2=((r(a,2)^r(a,13)^r(a,22))+((a&bb)^(a&c)^(bb&c)))|0; h=g;g=f;f=e;e=(d+t1)|0;d=c;c=bb;bb=a;a=(t1+t2)|0; }
+    H=H.map((x,i)=>(x+[a,bb,c,d,e,f,g,h][i])|0); }
+  return H.map(x=>(x>>>0).toString(16).padStart(8,'0')).join('');
+}
+const _pinCache={};
+function pinH(p){ p=String(p||''); if(_pinCache[p]) return _pinCache[p]; let h='invtrack-culac|'+p; for(let i=0;i<300;i++) h=_sha256(h+'|'+p); return (_pinCache[p]=h); }
+function pinMatchTeam(t,p){ if(!t||!p) return false; if(t.pin) return t.pin===p; return !!t.pinHash && t.pinHash===pinH(p); }
+function hasAdminPin(){ let c=loadConfig(); return !!((c.adminPin||'').trim()||c.adminPinHash); }
+function isAdminPin(p){ if(!p) return false; let c=loadConfig(); if((c.adminPin||'').trim()) return p===(c.adminPin||'').trim(); return !!c.adminPinHash && pinH(p)===c.adminPinHash; }
+
 // ══════════════════════════════════════════
 //  CONFIG & VARIABLES
 // ══════════════════════════════════════════
@@ -1062,6 +1089,7 @@ function requirePin(purpose, allowedPins){
   if(allowedPins.includes(p)) return true;
   showToast("PIN ไม่ถูกต้อง",'error',2000); return false;
 }
+function requireAdminPin(purpose){ let p=prompt(purpose+"\nใส่ PIN 4 หลัก"); if(p===null) return false; if(isAdminPin(p.trim())) return true; showToast("PIN ไม่ถูกต้อง",'error',2000); return false; }
 function getSystemName() {
   let org = getOrgConfig();
   return org.prefix ? `${org.prefix} ${SYSTEM_NAME}` : SYSTEM_NAME;
@@ -1111,7 +1139,7 @@ async function refreshOtherTeamCounted(force){
       if(team===currentUser){
         (j.data[team]||[]).forEach(row=>{ let id=row.assetId; if(!id) return;
           let cur=u.counted[id];
-          if(!cur){ u.counted[id]={counted:true,timestamp:'',sheetTime:row.timestamp||'',status:getStatusCode(row.status),remark:row.remark||'',found_loc:row.location||getTeamLocLabel(currentUser),fromSheet:true}; changed=true; }
+          if(!cur){ u.counted[id]={counted:true,timestamp:'',sheetTime:row.timestamp||'',status:getStatusCode(row.status),remark:row.remark||'',found_loc:getTeamLocLabel(currentUser),fromSheet:true}; changed=true; }
           else if(cur.fromSheet){ let st=getStatusCode(row.status), rm=row.remark||''; if(cur.status!==st||cur.remark!==rm){ cur.status=st; cur.remark=rm; changed=true; } }
         });
         continue;
@@ -1385,7 +1413,7 @@ function saveOrgConfig(){
   let ap=(document.getElementById("devAdminPin")?.value||"").trim();
   if(ap && !/^\d{4}$/.test(ap)){ showToast("PIN ผู้ดูแลต้องเป็นตัวเลข 4 หลัก",'warn'); return; }
   if(ap && teamList.some(t=>t.pin===ap)){ showToast("PIN ผู้ดูแลซ้ำกับ PIN ทีม",'warn'); return; }
-  cfg.adminPin = ap;
+  cfg.adminPin = ap; if(ap) cfg.adminPinHash = pinH(ap);
   saveConfig(cfg);
   applyOrgToUI();
   showToast("บันทึกข้อมูลองค์กรแล้ว",'success',1500);
@@ -1436,6 +1464,7 @@ function findSubItem(code){
   code=code.trim();
   let s=subItems.find(x=>x.barcode===code); if(s) return s;
   let ps=parseSetCode(code);
+  if(ps && multiLineAssets.has(ps.parent)) return null;
   if(ps){ let pm=masterData.find(i=>i.id===ps.parent); if(pm) return {barcode:code,parent:ps.parent,seq:String(ps.seq),name:`ชิ้นที่ ${ps.seq} ของ ${pm.name}`,location:pm.location||"",room:"",parentInMaster:true}; }
   return null;
 }
@@ -1483,9 +1512,25 @@ function addUnrecognized(barcode){
 // ══════════════════════════════════════════
 //  ASSETS
 // ══════════════════════════════════════════
+// v3.36 ครุภัณฑ์ที่ CU-ERP แยกหลายบรรทัดด้วยเลขย่อย (บาร์โค้ดท้าย 0000, 0001, …) ใช้รหัสสินทรัพย์เดียวกัน
+//  → แต่ละบรรทัดได้รหัสของตัวเอง: บรรทัด 0000 = รหัสเดิม, บรรทัดอื่น = รหัส-เลขย่อย (เช่น 390228000588-0003)
+//  → สติกเกอร์ 390228000588-3 นับบรรทัดเลขย่อย 0003 เข้าทะเบียน (ไม่ใช่ชิ้นย่อยควบคุมภายใน)
+let multiLineAssets=new Set();
+function normalizeMaster(){
+  let g={}; masterData.forEach(i=>{ let k=i.asset||i.id; (g[k]=g[k]||[]).push(i); });
+  multiLineAssets=new Set();
+  for(let k in g){ if(g[k].length<2) continue; multiLineAssets.add(k);
+    g[k].forEach(i=>{ let sn=(i.sub_no)||((i.barcode||'').length>12?(i.barcode||'').slice(12):'0000')||'0000'; i.asset=k; i.sub_no=sn; i.id=(sn==='0000')?k:(k+'-'+sn); }); }
+  subItems=subItems.filter(x=>!multiLineAssets.has(x.parent));
+}
+function findMultiLine(code){
+  let ps=parseSetCode(code); if(!ps||!multiLineAssets.has(ps.parent)) return null;
+  let sn=String(ps.seq).padStart(4,'0'); return masterData.find(i=>i.asset===ps.parent&&i.sub_no===sn)||null;
+}
 function loadAssets(){
   try{ masterData=JSON.parse(localStorage.getItem(STORAGE_ASSETS)||"[]"); }catch(e){ masterData=[]; }
   try{ subItems=JSON.parse(localStorage.getItem(STORAGE_SUBITEMS)||"[]"); }catch(e){ subItems=[]; }
+  normalizeMaster();
   if(masterData.length){ document.getElementById("uploadSection").style.display="none"; document.getElementById("resetCountBtn").disabled=false; renderCurrentTab(); return true; }
   document.getElementById("uploadSection").style.display="block"; return false;
 }
@@ -1528,9 +1573,9 @@ async function uploadExcel(file){
       });
     }
     if(!newData.length) throw new Error("ไม่พบข้อมูลครุภัณฑ์ในไฟล์");
-    masterData=newData;
+    masterData=newData; subItems=[]; normalizeMaster();
     localStorage.setItem(STORAGE_ASSETS,JSON.stringify(masterData));
-    // ── ชีต "ชิ้นย่อย" (ถ้ามี): A=บาร์โค้ดบนสติกเกอร์ B=รหัสแม่ C=ลำดับ D=ชื่อ E=ที่ตั้ง F=ห้อง ──
+    // ── ชีต "ชิ้นย่อย" (ถ้ามี): A=บาร์โค้ดบนสติกเกอร์ B=เลขตัวหลัก C=ลำดับ D=ชื่อ E=ที่ตั้ง F=ห้อง ──
     subItems=[];
     let subSheet=wb.Sheets["ชิ้นย่อย"];
     if(subSheet){
@@ -1542,6 +1587,7 @@ async function uploadExcel(file){
         subItems.push({barcode:bc,parent,seq:(r[2]??"").toString().trim(),name:(r[3]??"").toString().trim(),location:(r[4]??"").toString().trim(),room:(r[5]??"").toString().trim(),parentInMaster:masterIds.has(parent)});
       }
     }
+    subItems=subItems.filter(x=>!multiLineAssets.has(x.parent));
     localStorage.setItem(STORAGE_SUBITEMS,JSON.stringify(subItems));
     let upSec=document.getElementById("uploadSection");
     if(upSec) upSec.style.display="none";
@@ -1592,12 +1638,13 @@ function updateStatsUI(){
 // เลขคงคลังเก่า: ตัดเหลือเลข 12 หลักแรกเสมอ — รับได้ทั้ง 373260000043 · 373260000043-0000 · 373260000043/59-1
 function normOldCode(s){ let m=String(s||"").trim().match(/^\d{12}/); return m?m[0]:String(s||"").trim(); }
 // ป้ายมีขีด  <รหัส12หลัก>-<ลำดับ>  ทุกลำดับ (-1 -2 -3 …) = ชิ้นย่อย → ทะเบียนควบคุมภายใน
-// ตัวหลักของชุด (รายการในทะเบียน) ต้องยิงบาร์โค้ด/พิมพ์เลขแม่แยกต่างหาก
+// ตัวหลักของชุด (รายการในทะเบียน) ต้องยิงบาร์โค้ด/พิมพ์เลขตัวหลักแยกต่างหาก
 function parseSetCode(code){ let m=String(code||"").trim().match(/^(\d{12})-(\d{1,3})$/); return m?{parent:m[1],seq:parseInt(m[2])}:null; }
 function findItem(code){
   code = code.trim();
   let hit = masterData.find(i=> i.barcode===code || i.id===code || i.inv_code===code);
   if(hit) return hit;
+  hit=findMultiLine(code); if(hit) return hit;   // v3.36 สติกเกอร์ของครุภัณฑ์หลายบรรทัด → บรรทัดในทะเบียน
   if(parseSetCode(code)) return null;   // ป้ายมีขีด → ไม่ใช่รายการหลัก
   // เลขคงคลังเก่า: ตัดเหลือ 12 หลักแรก เทียบกับคอลัมน์ C เท่านั้น (373260000043/59-1 → 373260000043)
   let core = normOldCode(code);
@@ -1629,15 +1676,15 @@ function processBarcode(barcode){
   }else{
     let sub=findSubItem(barcode);
     if(sub){
-      // ชิ้นย่อย: เข้าทะเบียนควบคุมภายใน ไม่นับแม่ (ทีมต้องยิง/พิมพ์เลขแม่เอง)
+      // ชิ้นย่อย: เข้าทะเบียนควบคุมภายใน ไม่นับตัวหลัก (ทีมต้องยิง/พิมพ์เลขตัวหลักเอง)
       let added=addInternal(sub);
       let parentCounted=!!getCountedInfo(sub.parent);
       let pm=masterData.find(i=>i.id===sub.parent);
-      let hint=parentCounted?`แม่ ${sub.parent} นับแล้ว`:`⚠️ ยังไม่ได้นับแม่ — ยิง/พิมพ์ ${sub.parent}`;
+      let hint=parentCounted?`ตัวหลัก ${sub.parent} นับแล้ว`:`⚠️ ยังไม่ได้นับตัวหลัก — ยิง/พิมพ์ ${sub.parent}`;
       showToast(`🔵 ชิ้นย่อย: ${sub.name||sub.barcode} · ${hint}`,'info',3500);
       beepInternal();
       flashInput('info');
-      let bi=document.getElementById("barcodeInput"); if(bi&&!parentCounted&&pm){ bi.placeholder=`พิมพ์เลขแม่ ${sub.parent} เพื่อนับเข้าทะเบียน`; setTimeout(()=>{bi.placeholder="ยิงบาร์โค้ด หรือพิมพ์รหัสครุภัณฑ์...";},6000); }
+      let bi=document.getElementById("barcodeInput"); if(bi&&!parentCounted&&pm){ bi.placeholder=`พิมพ์เลขตัวหลัก ${sub.parent} เพื่อนับเข้าทะเบียน`; setTimeout(()=>{bi.placeholder="ยิงบาร์โค้ด หรือพิมพ์รหัสครุภัณฑ์...";},6000); }
       updateStatsUI(); if(currentTab==='internal') renderCurrentTab();
       return;
     }
@@ -1705,7 +1752,7 @@ function renderInternalTable(){
       <td style="font-size:.78rem;">${esc(x.name||'')}</td>
       <td><code style="font-size:.7rem;">${esc(x.parent)}</code></td>
       <td style="font-size:.74rem;color:#555;">${esc(pm?pm.name.substring(0,40):'(ไม่มีในทะเบียนปีนี้)')}</td>
-      <td>${pc?'<span class="badge bg-success">นับแล้ว</span>':`<button class="btn btn-sm btn-outline-danger cnt-parent" data-p="${esc(x.parent)}" style="border-radius:20px;font-size:.68rem;padding:1px 8px;">ยังไม่นับ — นับแม่</button>`}</td>
+      <td>${pc?'<span class="badge bg-success">นับแล้ว</span>':`<button class="btn btn-sm btn-outline-danger cnt-parent" data-p="${esc(x.parent)}" style="border-radius:20px;font-size:.68rem;padding:1px 8px;">ยังไม่นับ — นับตัวหลัก</button>`}</td>
       <td style="font-size:.7rem;white-space:nowrap;">${timeStr(x.timestamp)}</td>
       <td><input type="text" class="internal-remark" data-idx="${idx}" value="${esc(x.remark||'')}" placeholder="หมายเหตุ" style="font-size:.74rem;"></td>
       <td><button class="btn btn-sm btn-outline-danger internal-del" data-idx="${idx}" style="border-radius:20px;padding:2px 8px;font-size:.68rem;">🗑️</button></td>
@@ -1722,10 +1769,11 @@ function renderCurrentTab(){
 function removeCountedItem(id){
   if(!confirm(`ยืนยันการลบ?\n${id} — ${masterData.find(i=>i.id===id)?.name||''}\n\nรายการนี้จะถูกลบออกจากการนับ`)) return;
   if(!currentUser) return;
+  let old=scanData[currentUser].counted[id]||{}; let it=masterData.find(i=>i.id===id)||{};
   delete scanData[currentUser].counted[id];
   saveScanData();
-  // แจ้ง Sheet ให้ลบด้วย (ผ่าน reset แบบเฉพาะรายการ)
-  if(GOOGLE_SHEET_URL) queueSync({type:"delete_item",user:currentUser,assetId:id,fiscalYear:currentFiscalYear});
+  // แจ้ง Sheet ให้ลบด้วย · v3.7 ย้ายไปเก็บประวัติในแท็บ "ลบแล้ว"
+  if(GOOGLE_SHEET_URL) queueSync({type:"delete_item",user:currentUser,assetId:id,assetName:it.name||"",location:it.location||"",remark:old.remark||"",scannedAt:old.timestamp||"",fiscalYear:currentFiscalYear});
   updateStatsUI(); renderCurrentTab();
   showToast(`🗑️ ลบรายการแล้ว`,'warn',1500);
 }
@@ -2000,8 +2048,8 @@ function showLoginScreen(){
       pinInp.style.borderColor="#fadbe8";
       return;
     }
-    let team=teamList.find(t=>t.pin===pin);
-    if(!team && getAdminPin() && pin===getAdminPin()){
+    let team=teamList.find(t=>pinMatchTeam(t,pin));
+    if(!team && isAdminPin(pin)){
       // PIN ผู้ดูแล → เข้าได้ทุกทีม
       team={code:(teamList[0]&&teamList[0].code)||"ADMIN",desc:"ผู้ดูแลระบบ — เห็นทุกทีม",_admin:true};
     }
@@ -2051,10 +2099,10 @@ function initUserSession(){
   let lastPin = localStorage.getItem("invtrack_lastPin");
   // ถ้าเคย login และ PIN ยังตรงกับทีมที่มีในระบบ → เข้าได้เลย
   if(last && lastPin && teamList.length){
-    if(getAdminPin() && lastPin===getAdminPin()){
+    if(isAdminPin(lastPin)){
       adminMode=true; currentUser=last; ensureUser(currentUser); updateUserDropdown(); return;
     }
-    let team = teamList.find(t=>t.code===last && t.pin===lastPin);
+    let team = teamList.find(t=>t.code===last && pinMatchTeam(t,lastPin));
     if(team){
       currentUser = last;
       ensureUser(currentUser);
@@ -2764,45 +2812,54 @@ async function mergeFromSheet(){
     let teams = Object.keys(sheetData);
     if(!teams.length){ showToast("ไม่พบข้อมูลใน Sheet",'warn'); return; }
 
-    // สร้าง scanData จาก Sheet data
+    // สร้าง scanData จาก Sheet data — v3.36: แถวล่าสุดของแต่ละรายการคือค่าที่ใช้ (สภาพ/หมายเหตุที่แก้ทีหลังจะทับของเดิม)
     let mergedScan = {};
-    let allCounted = {}; // id → [{user, info}]
+    let allCounted = {}; // id → [{user, info}] (ทีมละ 1 ครั้ง)
     for(let team of teams){
       mergedScan[team] = { counted:{}, unrecognized:[] };
       for(let row of (sheetData[team]||[])){
         let id = row.assetId;
         if(!id) continue;
-        let info = { counted:true, timestamp:row.timestamp||'', status:getStatusCode(row.status), remark:row.remark||'', found_loc:getTeamLocLabel(team) };
-        mergedScan[team].counted[id] = info;
-        if(!allCounted[id]) allCounted[id] = [];
-        allCounted[id].push({user:team, info});
+        mergedScan[team].counted[id] = { counted:true, timestamp:row.timestamp||'', status:getStatusCode(row.status), remark:row.remark||'', found_loc:getTeamLocLabel(team), fromMerge:true };
       }
+      for(let id in mergedScan[team].counted){ if(!allCounted[id]) allCounted[id]=[]; allCounted[id].push({user:team, info:mergedScan[team].counted[id]}); }
     }
-    // internal (ชิ้นย่อย)
+    // internal (ชิ้นย่อย) — ยึด Sheet: รายการที่เคยรวมแต่ถูกลบใน Sheet แล้วจะหายไป
     if(json.internal){
+      let seen={};
       for(let row of json.internal){
         let team=row.user||'UNKNOWN'; if(!scanData[team]) scanData[team]={counted:{},unrecognized:[],internal:[]}; if(!scanData[team].internal) scanData[team].internal=[];
-        if(!scanData[team].internal.find(x=>x.barcode===row.barcode)) scanData[team].internal.push({barcode:row.barcode,parent:row.parent,seq:row.seq,name:row.assetName,timestamp:row.timestamp||'',found_loc:row.location||'',remark:row.remark||''});
+        (seen[team]=seen[team]||new Set()).add(row.barcode);
+        let ex=scanData[team].internal.find(x=>x.barcode===row.barcode);
+        if(!ex) scanData[team].internal.push({barcode:row.barcode,parent:row.parent,seq:row.seq,name:row.assetName,timestamp:row.timestamp||'',found_loc:row.location||'',remark:row.remark||'',fromMerge:true});
+        else if(ex.fromMerge){ ex.remark=row.remark||''; }
       }
+      for(let team in scanData){ let L=scanData[team].internal; if(L) scanData[team].internal=L.filter(x=>!x.fromMerge||(seen[team]&&seen[team].has(x.barcode))); }
     }
-    // unrecognized
+    // unrecognized (เกินทะเบียน) — v3.36 นำเข้ามาที่เครื่องผู้ดูแลด้วย
     if(json.unrecognized){
+      let seenU={};
       for(let row of json.unrecognized){
         let team = row.user || 'UNKNOWN';
         if(!mergedScan[team]) mergedScan[team] = { counted:{}, unrecognized:[] };
-        mergedScan[team].unrecognized.push({
-          barcode:row.barcode||'', assetName:row.assetName||'',
-          location:row.location||'', remark:row.remark||'',
-          timestamp:row.timestamp||''
-        });
+        if(!scanData[team]) scanData[team]={counted:{},unrecognized:[],internal:[]};
+        (seenU[team]=seenU[team]||new Set()).add(row.barcode);
+        let rec={barcode:row.barcode||'', assetName:row.assetName||'', location:row.location||'', remark:row.remark||'', timestamp:row.timestamp||'', fromMerge:true};
+        mergedScan[team].unrecognized.push(rec);
+        let L=scanData[team].unrecognized; let ex=L.find(x=>x.barcode===rec.barcode);
+        if(!ex) L.push(rec); else if(ex.fromMerge){ ex.assetName=rec.assetName; ex.location=rec.location; ex.remark=rec.remark; }
       }
+      for(let team in scanData){ let L=scanData[team].unrecognized; if(L) scanData[team].unrecognized=L.filter(x=>!x.fromMerge||(seenU[team]&&seenU[team].has(x.barcode))); }
     }
 
-    // รวม scanData เข้ากับ local (ไม่ทับข้อมูล local)
+    // รวมเข้ากับเครื่องนี้: ค่าจาก Sheet ทับค่าที่เคยรวมไว้ · รายการที่เครื่องนี้บันทึกเอง (เช่น บันทึกจากหลักฐานที่ยังค้างส่ง) เก็บไว้
     for(let team of teams){
-      if(!scanData[team]) scanData[team] = { counted:{}, unrecognized:[] };
+      if(!scanData[team]) scanData[team] = { counted:{}, unrecognized:[], internal:[] };
+      let C=scanData[team].counted;
+      for(let id in C){ if(C[id].fromMerge && !mergedScan[team].counted[id]) delete C[id]; }
       for(let id in mergedScan[team].counted){
-        if(!scanData[team].counted[id]) scanData[team].counted[id] = mergedScan[team].counted[id];
+        let cur=C[id], m=mergedScan[team].counted[id];
+        if(!cur || cur.fromMerge || cur.method==='evidence') C[id]=Object.assign({},m,cur&&cur.method?{method:cur.method}:{});
       }
     }
     saveScanData();
@@ -3038,10 +3095,10 @@ function printSubItemReport(){
   let parents=Object.keys(byParent).sort(); let tot=scope.length, fnd=scope.filter(s=>found[s.barcode]).length;
   let rows='';
   parents.forEach(p=>{ let pm=masterData.find(i=>i.id===p); let list=byParent[p].sort((a,b)=>(parseInt(a.seq)||0)-(parseInt(b.seq)||0)); let f=list.filter(s=>found[s.barcode]).length;
-    let ps=parentCounted[p]?`แม่นับแล้ว (${esc(parentCounted[p])})`:'<span style="color:#D6336C">แม่ยังไม่นับ</span>';
+    let ps=parentCounted[p]?`ตัวหลักนับแล้ว (${esc(parentCounted[p])})`:'<span style="color:#D6336C">ตัวหลักยังไม่นับ</span>';
     rows+=`<tr class="grp"><td colspan="6">📦 ${esc(p)} ${esc(pm?pm.name:'(ไม่มีในทะเบียนปีนี้)')} — ${ps} · พบ ${f}/${list.length}</td></tr>`;
     list.forEach(s=>{ let fo=found[s.barcode]; rows+=`<tr><td class="mono">${esc(s.barcode)}</td><td class="c">${esc(s.seq)}</td><td>${esc(s.name)}</td><td>${esc(s.location||pm?.location||'')}${s.room?' / '+esc(s.room):''}</td><td class="c">${fo?'✔ '+esc(fo.team):'—'}</td><td>${fo?esc(fo.remark):''}</td></tr>`; }); });
-  let head=reportHeader('รายงานควบคุมภายใน — ครุภัณฑ์ที่ซื้อเป็นชุด','ชิ้นย่อยที่ติดป้ายมีขีด -1 -2 … (ตัวหลักของชุดนับแยกด้วยเลขแม่) <span class="tag">เอกสารภายใน ไม่ส่ง สตง.</span>',`ปีงบประมาณ <b>${esc(currentFiscalYear)}</b><br>${adminMode?'ทุกทีม':'ทีม '+esc(currentUser)} · ชุด ${parents.length} · ชิ้น ${tot} · พบ ${fnd}`);
+  let head=reportHeader('รายงานควบคุมภายใน — ครุภัณฑ์ที่ซื้อเป็นชุด','ชิ้นย่อยที่ติดป้ายมีขีด -1 -2 … (ตัวหลักของชุดนับแยกด้วยเลขตัวหลัก) <span class="tag">เอกสารภายใน ไม่ส่ง สตง.</span>',`ปีงบประมาณ <b>${esc(currentFiscalYear)}</b><br>${adminMode?'ทุกทีม':'ทีม '+esc(currentUser)} · ชุด ${parents.length} · ชิ้น ${tot} · พบ ${fnd}`);
   let body=parents.length?`<table><thead><tr><th style="width:130px">ป้าย</th><th class="c" style="width:44px">ลำดับ</th><th>ชื่อชิ้น</th><th style="width:150px">ที่ตั้ง / ห้อง (ปีก่อน)</th><th class="c" style="width:90px">พบ (ทีม)</th><th style="width:140px">หมายเหตุ</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">ไม่มีชุดในขอบเขตนี้</div>`;
   openReport('รายงานควบคุมภายใน',head+body+reportFooter('ทะเบียนควบคุมภายใน — ใช้ปรับปรุงทะเบียนย่อย'),true);
 }
@@ -3124,18 +3181,27 @@ function exportMissingExcel(){
 // ══════════════════════════════════════════
 function embedCurrentData(){
   if(!masterData.length){ alert("ไม่มีข้อมูลครุภัณฑ์"); return; }
-  let cfg=loadConfig();
-  let html=document.documentElement.outerHTML;
+  let cfg=Object.assign({},loadConfig());
+  // v3.36 ไม่ใส่ PIN ตัวจริงในไฟล์แจก — ใส่เฉพาะแฮช
+  if((cfg.adminPin||'').trim()) cfg.adminPinHash=pinH(cfg.adminPin.trim());
+  delete cfg.adminPin;
+  let teamsOut=teamList.map(t=>{ let o=Object.assign({},t); if(o.pin){ o.pinHash=pinH(o.pin); } delete o.pin; return o; });
+  // v3.36 ใช้หน้าเว็บต้นฉบับ (ก่อนวาดหน้าจอ) และตัดสคริปต์ฝังข้อมูลรุ่นเก่าออก
+  const ST='<scr'+'ipt', ET='<\/scr'+'ipt>';   // แยกคำ กันโค้ดนี้จับตัวเอง
+  let html=PRISTINE_HTML.replace(new RegExp(ST+' id="invtrackEmbed">[\\s\\S]*?'+ET,'g'),'').replace(new RegExp(ST+">\\(function\\(\\)\\{var s='[a-z0-9]+';if\\(localStorage\\.getItem\\('invtrack_embed_stamp'\\)[\\s\\S]*?"+ET,'g'),'');
   let stamp=Date.now().toString(36);
-  // ฝังข้อมูลครั้งเดียว: ใช้ตราประทับ (stamp) กันวนโหลดซ้ำ — ไฟล์ Embed ที่สร้างใหม่จะมี stamp ใหม่ จึงทับข้อมูลเก่าได้
-  let sc=`<script>(function(){var s='${stamp}';if(localStorage.getItem('invtrack_embed_stamp')===s)return;localStorage.setItem('${STORAGE_ASSETS}',JSON.stringify(${JSON.stringify(masterData)}));localStorage.setItem('${STORAGE_CONFIG}',JSON.stringify(${JSON.stringify(cfg)}));localStorage.setItem('${STORAGE_SUBITEMS}',JSON.stringify(${JSON.stringify(subItems)}));localStorage.setItem('${STORAGE_TEAMS}',JSON.stringify(${JSON.stringify(teamList)}));localStorage.setItem('${STORAGE_COMMITTEE}',JSON.stringify(${JSON.stringify(committeeData)}));localStorage.setItem('${STORAGE_PRESIDENT}','${presidentName.replace(/'/g,"\\'")}');localStorage.setItem('${STORAGE_MISSING_REASONS}',JSON.stringify(${JSON.stringify(missingReasons)}));localStorage.setItem('googleSheetUrl_invtrack','${GOOGLE_SHEET_URL.replace(/'/g,"\\'")}');localStorage.setItem('invtrack_embed_stamp',s);location.reload();})();<\/script>`;
-  let sysName = getSystemName().replace(/\s+/g,'_');
-  // แทรกที่ </body> ตัวสุดท้ายเท่านั้น (ในโค้ดมีข้อความ </body> อยู่หลายจุดในฟังก์ชันพิมพ์รายงาน)
+  const J=v=>JSON.stringify(v).replace(/</g,'\\u003c');
+  let sc=`${ST} id="invtrackEmbed">(function(){var s='${stamp}';if(localStorage.getItem('invtrack_embed_stamp')===s)return;
+var oc={};try{oc=JSON.parse(localStorage.getItem('${STORAGE_CONFIG}')||'{}')}catch(e){}
+var ot=[];try{ot=JSON.parse(localStorage.getItem('${STORAGE_TEAMS}')||'[]')}catch(e){}
+var cfg=${J(cfg)}; if(oc.adminPin) cfg.adminPin=oc.adminPin;
+var teams=${J(teamsOut)}; teams.forEach(function(t){ var o=ot.filter(function(x){return x.code===t.code&&x.pin})[0]; if(o) t.pin=o.pin; });
+localStorage.setItem('${STORAGE_ASSETS}',JSON.stringify(${J(masterData)}));localStorage.setItem('${STORAGE_CONFIG}',JSON.stringify(cfg));localStorage.setItem('${STORAGE_SUBITEMS}',JSON.stringify(${J(subItems)}));localStorage.setItem('${STORAGE_TEAMS}',JSON.stringify(teams));localStorage.setItem('${STORAGE_COMMITTEE}',JSON.stringify(${J(committeeData)}));localStorage.setItem('${STORAGE_PRESIDENT}',${J(presidentName)});localStorage.setItem('${STORAGE_MISSING_REASONS}',JSON.stringify(${J(missingReasons)}));localStorage.setItem('googleSheetUrl_invtrack',${J(GOOGLE_SHEET_URL)});localStorage.setItem('invtrack_embed_stamp',s);location.reload();})();${ET}`;
   let cut=html.lastIndexOf('</body>');
   let out=cut>=0 ? html.slice(0,cut)+sc+html.slice(cut) : html+sc;
   let blob=new Blob([out],{type:'text/html'});
   let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='index.html'; a.click();
-  URL.revokeObjectURL(a.href); showToast(`สร้าง CULAC_InvTrack_${currentFiscalYear}.html แล้ว`,'success',2500);
+  URL.revokeObjectURL(a.href); showToast(`สร้าง index.html แล้ว (ไม่มี PIN ตัวจริงในไฟล์)`,'success',2500);
 }
 
 // ══════════════════════════════════════════
@@ -3224,7 +3290,7 @@ function toggleAdminPanel(){
   {
     let p=document.getElementById("devPanel");
     let isOpen=p.style.display!=='none';
-    if(!isOpen && getAdminPin() && !adminMode && !requirePin("เปิดแผงผู้ดูแลระบบ",[getAdminPin()])) return;
+    if(!isOpen && hasAdminPin() && !adminMode && !requireAdminPin("เปิดแผงผู้ดูแลระบบ")) return;
     if(!isOpen){ adminMode=true; updateUserDropdown(); }
     p.style.display=isOpen?'none':'block';
     if(!isOpen){
@@ -3266,6 +3332,7 @@ loadSyncQueue();
 loadTeamList();
 loadCommittee();
 loadAssets();
+try{ populateTeamLocOptions(); }catch(e){}   // v3.37 เติมที่ตั้งให้ช่องเพิ่มทีมหลังโหลดทะเบียน
 
 let savedUrl=localStorage.getItem("googleSheetUrl_invtrack");
 if(savedUrl){ GOOGLE_SHEET_URL=savedUrl; }
@@ -3296,6 +3363,13 @@ function setView(v){
   window.scrollTo(0,0);
   if(v==='scan'){ renderLastCard(); let bi=document.getElementById('barcodeInput'); if(bi) bi.focus(); }
 }
+// v3.36 จำนวนที่พบ — เฉพาะบรรทัดที่ทะเบียนมีปริมาณเป็นจำนวนเต็มตั้งแต่ 2 ขึ้นไป · เก็บเป็นข้อความนำหน้าหมายเหตุ "พบ x จาก y" (ไปถึง Sheet และทุกรายงาน)
+const QTY_RX=/^พบ (\d+) จาก (\d+)(?: · )?/;
+function regQty(item){ let q=Number(item&&item.qty); return (Number.isInteger(q)&&q>=2)?q:0; }
+function foundQty(item,info){ let q=regQty(item); if(!q) return 0; let m=String(info&&info.remark||'').match(QTY_RX); return m?Math.min(+m[1],q):q; }
+function userRemark(info){ return String(info&&info.remark||'').replace(QTY_RX,''); }
+function setFoundQty(id,n){ let item=masterData.find(i=>i.id===id); let q=regQty(item); let inf=getCountedInfo(id); if(!q||!inf) return;
+  n=Math.max(0,Math.min(q,n|0)); let ur=userRemark(inf); inf.remark=(n<q?`พบ ${n} จาก ${q}`+(ur?' · '+ur:''):ur); setCountedInfo(id,inf); }
 function _lcLatest(){
   if(!currentUser||!scanData[currentUser]) return null;
   let u=scanData[currentUser], best=null;
@@ -3312,6 +3386,7 @@ function renderLastCard(){
   if(best.k==='c'){
     let item=masterData.find(i=>i.id===best.id), info=u.counted[best.id]||{};
     key=['c',currentUser,best.id,best.t,info.status||'',info.remark||''].join('|');
+    let rq=regQty(item), fq=foundQty(item,info);
     if(el.dataset.key===key) return;
     let out=item && !getTeamAssets(currentUser).some(z=>z.id===item.id);
     let st=info.status||'';
@@ -3319,7 +3394,8 @@ function renderLastCard(){
       <div class="lc-name">${esc(item?item.name:best.id)}</div>
       <div class="lc-meta"><code>${esc(best.id)}</code> · ${esc(item?foundLocationFor(item,currentUser):'')}${out?' · <b>นอกพื้นที่</b>':''}</div>
       <div class="lc-st">${[['','ปกติ'],['damaged','ชำรุด'],['worn','เสื่อม'],['unused','ไม่ใช้']].map(([v,l])=>`<button class="stb${st===v?' on':''}" data-v="${v}">${l}</button>`).join('')}</div>
-      <input class="lc-remark" placeholder="หมายเหตุ เช่น เปิดไม่ติด · ขาหัก" value="${esc(info.remark||'')}" ${st?'':'style="display:none"'}>
+      ${rq?`<div class="lc-qty"><span>จำนวนที่พบ</span><button class="qb" data-d="-1">−</button><b class="${fq<rq?'short':''}">${fq}</b><button class="qb" data-d="1">+</button><span>จาก ${rq} ${esc(item.unit||'')}</span></div>`:''}
+      <input class="lc-remark" placeholder="หมายเหตุ เช่น เปิดไม่ติด · ขาหัก" value="${esc(userRemark(info))}" ${st?'':'style="display:none"'}>
       <div class="lc-foot"><button class="lc-link" data-go="list">ดูรายการทั้งหมด</button><button class="lc-del">🗑️ ยิงผิด ลบ</button></div></div>`;
     el.dataset.key=key;
     el.querySelectorAll('.stb').forEach(b=>b.addEventListener('click',()=>{
@@ -3327,7 +3403,8 @@ function renderLastCard(){
       setTimeout(()=>{ let r=document.querySelector('#lastCard .lc-remark'); if(b.dataset.v && r) r.focus(); else document.getElementById('barcodeInput').focus(); },30);
     }));
     let rm=el.querySelector('.lc-remark');
-    if(rm){ rm.addEventListener('change',e=>{ let inf=getCountedInfo(best.id); if(!inf) return; inf.remark=e.target.value; setCountedInfo(best.id,inf); });
+    el.querySelectorAll('.qb').forEach(b=>b.addEventListener('click',()=>{ let inf=getCountedInfo(best.id); setFoundQty(best.id, foundQty(item,inf)+(+b.dataset.d)); }));
+    if(rm){ rm.addEventListener('change',e=>{ let inf=getCountedInfo(best.id); if(!inf) return; let n=foundQty(item,inf), q=regQty(item); let v=e.target.value.trim(); inf.remark=(q&&n<q)?`พบ ${n} จาก ${q}`+(v?' · '+v:''):v; setCountedInfo(best.id,inf); });
             rm.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.target.blur(); document.getElementById('barcodeInput').focus(); } }); }
     el.querySelector('.lc-del').addEventListener('click',()=>{ removeCountedItem(best.id); el.dataset.key=''; renderLastCard(); });
   } else if(best.k==='i'){
@@ -3373,13 +3450,15 @@ function renderSendPanel(){
   let rem=parseInt(g('dashRemaining')?.textContent||'0');
   let blank=(u.unrecognized||[]).filter(x=>!(x.assetName||'').trim()||!(x.location||'').trim()).length;
   let orph=(u.internal||[]).filter(x=>masterData.find(i=>i.id===x.parent)&&!getCountedInfo(x.parent)).length;
-  let dmg=Object.values(u.counted||{}).filter(i=>i.status&&!(i.remark||'').trim()).length;
+  let dmg=Object.values(u.counted||{}).filter(i=>i.status&&!userRemark(i).trim()).length;
+  let short=Object.entries(u.counted||{}).filter(([id,i])=>QTY_RX.test(i.remark||'')).length;
   let cks=[
     [rem===0, rem===0?'ตรวจครบทุกรายการในพื้นที่':`ยังไม่นับ ${rem} รายการ — ดูว่าอยู่ชั้นเราหรือไม่ (หน้า ยิง → การ์ด ⏳)`],
     [blank===0, blank===0?'เกินทะเบียนกรอกชื่อและห้องครบ':`เกินทะเบียน ${blank} รายการยังไม่กรอกชื่อหรือห้อง`],
     [orph===0, orph===0?'ชิ้นย่อยทุกชุด นับตัวหลักแล้ว':`ชิ้นย่อย ${orph} ชิ้น ตัวหลักของชุดยังไม่นับ`],
     [dmg===0, dmg===0?'ของไม่ปกติมีหมายเหตุครบ':`ของไม่ปกติ ${dmg} รายการยังไม่มีหมายเหตุ`],
   ];
+  if(short) cks.push([false,`พบไม่ครบจำนวน ${short} รายการ (ขึ้นในหมายเหตุ "พบ x จาก y" ของรายงานแล้ว)`]);
   g('sdWarn').innerHTML=cks.map(([ok,t])=>`<div class="ck ${ok?'ok':'no'}"><i>${ok?'✓':'!'}</i><span>${esc(t)}</span></div>`).join('')+(cks.some(x=>!x[0])?'<div class="sd-tip" style="text-align:left">ยังแจ้งได้ ถ้ามีเหตุผล (เช่น ของย้ายไปชั้นอื่น) — บอกผู้ดูแลระบบด้วย</div>':'');
   let sb=g('submittedBadge'); let done=sb&&sb.style.display!=='none';
   g('sdDone').textContent=done?sb.textContent+' — รอผู้ดูแลระบบนัดลงนาม':'';
@@ -3397,7 +3476,9 @@ async function loadTeamStatus(force){
     let j=await r.json();
     if(!j.ok||!Array.isArray(j.rows)) throw new Error(j.error||'no rows');
     window._teamStatus={}; j.rows.forEach(x=>{ window._teamStatus[x.team]=x; }); window._tsLoaded=true;
-  }catch(e){ sum.textContent='ดึงสถานะไม่ได้ — ตรวจว่าใช้ Apps Script v3.5 แล้ว'; return; }
+    try{ let r2=await fetch(GOOGLE_SHEET_URL+'?action=merge_all&fiscal='+encodeURIComponent(currentFiscalYear)+'&_='+Date.now()); let j2=await r2.json();
+      window._sheetCount={}; for(let t in (j2.data||{})) window._sheetCount[t]=new Set((j2.data[t]||[]).map(x=>x.assetId).filter(Boolean)).size; }catch(e){ window._sheetCount=null; }
+  }catch(e){ sum.textContent='ดึงสถานะไม่ได้ — ตรวจว่าใช้ Apps Script v3.7 แล้ว'; return; }
   renderTeamStatus();
 }
 function renderTeamStatus(){
@@ -3407,9 +3488,10 @@ function renderTeamStatus(){
   if(window._tsLoaded) document.getElementById('saSum').textContent=`แจ้งเสร็จแล้ว ${done} จาก ${teams.length} ทีม`+(done===teams.length&&teams.length&&teams.every(t=>(ts[t.code].pending||0)===0)?' · พร้อมรวมข้อมูล':'');
   list.innerHTML=teams.map(t=>{ let s=ts[t.code];
     if(!s) return `<div class="sa-row"><div class="sa-t">${esc(t.code)}<small>${esc(t.desc||'')}</small></div><div class="sa-s no">ยังไม่แจ้ง</div></div>`;
-    let warn=(s.pending>0||s.remaining>0);
+    let sc=window._sheetCount?(window._sheetCount[t.code]||0):null; let mis=(sc!==null&&sc!==+s.counted);
+    let warn=(s.pending>0||s.remaining>0||mis);
     return `<div class="sa-row ${warn?'warn':'done'}"><div class="sa-t">${esc(t.code)}<small>${esc(t.desc||'')}</small></div><div class="sa-s">✓ แจ้งแล้ว</div>
-      <div class="sa-n">${esc(s.at)} · นับแล้ว <b>${s.counted}</b> · ยังไม่นับ <b>${s.remaining}</b> · เกินทะเบียน ${s.unrecognized} · ชิ้นย่อย ${s.internal}${s.pending?` · <b style="color:#B23C00">ค้างส่ง ${s.pending}</b>`:''}</div></div>`; }).join('') || '<div class="lc-empty">ยังไม่ได้ตั้งทีม</div>';
+      <div class="sa-n">${esc(s.at)} · นับแล้ว <b>${s.counted}</b> · ยังไม่นับ <b>${s.remaining}</b> · เกินทะเบียน ${s.unrecognized} · ชิ้นย่อย ${s.internal}${s.pending?` · <b style="color:#B23C00">ค้างส่ง ${s.pending}</b>`:''}${sc!==null?(mis?` · <b style="color:#B23C00">ใน Sheet ${sc} ไม่ตรงกับที่ทีมแจ้ง — ให้ทีมเปิดเน็ตแล้วแจ้งซ้ำ</b>`:` · ใน Sheet ${sc} ✓ ตรงกัน`):''}</div></div>`; }).join('') || '<div class="lc-empty">ยังไม่ได้ตั้งทีม</div>';
 }
 
 (function initV315(){
