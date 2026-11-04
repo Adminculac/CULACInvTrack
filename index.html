@@ -522,6 +522,7 @@ code{ font-family:'Sarabun',sans-serif!important; font-weight:700; color:#8A1538
 #missingTable input[type=checkbox]{ width:18px; height:18px; }
 
 /* v3.31 dropdown เลือกหลายชั้น */
+/* v3.38 ยิงบาร์โค้ดแล้วลงรายการอัตโนมัติ ไม่ต้องกด Enter (รองรับเครื่องยิงที่ไม่ส่ง Enter / ส่ง Tab) */
 /* v3.37 ช่องเลือกที่ตั้งตอนเพิ่มทีมมีรายการทุกครั้งที่เปิดระบบ (เดิมต้องอัปโหลด Excel ใหม่ก่อน) · ปรับข้อความรุ่นไฟล์ */
 /* v3.36 นับครุภัณฑ์หลายบรรทัด (เลขย่อย ERP) แยกบรรทัด · จำนวนที่พบ · รวมข้อมูลยึด Sheet ล่าสุด · ไฟล์แจกไม่มี PIN ตัวจริง — ต้องใช้ Apps Script v3.7 */
 /* v3.35 ใช้คำว่า "ตัวหลัก" แทน "แม่" ทุกจุดที่ผู้ใช้เห็น */
@@ -3207,7 +3208,31 @@ localStorage.setItem('${STORAGE_ASSETS}',JSON.stringify(${J(masterData)}));local
 // ══════════════════════════════════════════
 //  EVENT BINDINGS
 // ══════════════════════════════════════════
-document.getElementById("barcodeInput").addEventListener("keypress",e=>{ if(e.key==="Enter"){e.preventDefault();processBarcodeInput(e.target.value);} });
+// v3.38 ยิงแล้วลงรายการเองทันที ไม่ต้องกด Enter
+//  · เครื่องยิงส่งตัวอักษรเร็วมาก (ห่างกัน < 50 มิลลิวินาที) → หยุดส่ง 0.2 วินาที = จบรหัส → บันทึกเอง
+//  · เครื่องยิงที่ส่ง Enter หรือ Tab ต่อท้าย → บันทึกทันที (ไม่บันทึกซ้ำ)
+//  · พิมพ์เองครบรูปแบบเลขครุภัณฑ์ (12/16 หลัก หรือ 12 หลัก-เลขชิ้น) แล้วหยุด 1.2 วินาที → บันทึกเอง · ข้อความอื่นกด Enter เหมือนเดิม
+(function(){
+  const bi=document.getElementById("barcodeInput"); if(!bi) return;
+  const CODE_RX=/^(\d{12}(-\d{1,4})?|\d{16})$/;
+  let tmr=null,lastT=0,prevLen=0,fast=0,slow=0;
+  const reset=()=>{ clearTimeout(tmr); tmr=null; fast=0; slow=0; prevLen=0; lastT=0; };
+  const go=()=>{ const v=bi.value; reset(); if(v.trim()) processBarcodeInput(v); };
+  bi.addEventListener("keydown",e=>{
+    if(e.isComposing) return;
+    if(e.key==="Enter"||((e.key==="Tab")&&bi.value.trim())){ e.preventDefault(); go(); }
+  });
+  bi.addEventListener("input",()=>{
+    const v=bi.value, now=performance.now(), add=v.length-prevLen, gap=lastT?now-lastT:1e9;
+    prevLen=v.length; lastT=now; clearTimeout(tmr); tmr=null;
+    if(!v.trim()){ reset(); return; }
+    if(add>=4) fast+=add; else if(add>0){ if(gap<50) fast++; else slow++; }
+    let wait=null;
+    if(fast>=4 && fast>=slow*3) wait=200;                 // ความเร็วแบบเครื่องยิง / วางทั้งรหัส
+    else if(CODE_RX.test(v.trim())) wait=1200;             // พิมพ์เองครบรูปแบบเลขครุภัณฑ์
+    if(wait!==null) tmr=setTimeout(go,wait);
+  });
+})();
 document.getElementById("fuzzySearch").addEventListener("input",e=>fuzzySearch(e.target.value));
 document.getElementById("resetCountBtn").addEventListener("click",resetCounting);
 document.getElementById("exportReportBtn").addEventListener("click",e=>{e.preventDefault();showReport();});
