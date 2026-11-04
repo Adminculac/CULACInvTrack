@@ -522,6 +522,7 @@ code{ font-family:'Sarabun',sans-serif!important; font-weight:700; color:#8A1538
 #missingTable input[type=checkbox]{ width:18px; height:18px; }
 
 /* v3.31 dropdown เลือกหลายชั้น */
+/* v3.39 เครื่องยิงที่ตั้งแป้นภาษาไทย (ได้ ๅ/-ภถุ แทน 12345) → แปลงกลับเป็นรหัสให้เอง */
 /* v3.38 ยิงบาร์โค้ดแล้วลงรายการอัตโนมัติ ไม่ต้องกด Enter (รองรับเครื่องยิงที่ไม่ส่ง Enter / ส่ง Tab) */
 /* v3.37 ช่องเลือกที่ตั้งตอนเพิ่มทีมมีรายการทุกครั้งที่เปิดระบบ (เดิมต้องอัปโหลด Excel ใหม่ก่อน) · ปรับข้อความรุ่นไฟล์ */
 /* v3.36 นับครุภัณฑ์หลายบรรทัด (เลขย่อย ERP) แยกบรรทัด · จำนวนที่พบ · รวมข้อมูลยึด Sheet ล่าสุด · ไฟล์แจกไม่มี PIN ตัวจริง — ต้องใช้ Apps Script v3.7 */
@@ -1714,8 +1715,24 @@ function flashInput(type){
   fb.className=`feedback-badge ${cls[type]||'ready'}`; fb.innerText=labels[type]||labels.ready;
   setTimeout(()=>{ inp.className='barcode-input'; fb.className='feedback-badge ready'; fb.innerText='⚡ พร้อมสแกน'; },1200);
 }
-function processBarcodeInput(raw){
-  let t=raw.trim(); if(!t) return;
+// v3.39 เครื่องยิงส่ง "ปุ่ม" ไม่ใช่ตัวอักษร — ถ้าเครื่องตั้งแป้นภาษาไทยอยู่ 1234 จะกลายเป็น ๅ/-ภ → แปลงกลับเป็นตัวอังกฤษ/ตัวเลขให้เอง
+const KB_EN="`1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
+const KB_TH="_ๅ/-ภถุึคตจขชๆไำพะัีรนยบลฃฟหกดเ้่าสวงผปแอิืทมใฝ%+๑๒๓๔ู฿๕๖๗๘๙๐\"ฎฑธํ๊ณฯญฐ,ฅฤฆฏโฌ็๋ษศซ.()ฉฮฺ์?ฒฬฦ";
+const KB_MAP=(()=>{ let m={}; for(let i=0;i<KB_TH.length;i++){ let c=KB_TH[i]; if(/[\u0E00-\u0E7F]/.test(c)) m[c]=KB_EN[i]; } m['/']='2'; m['-']='3'; return m; })();   // แป้นไทย: ปุ่ม 2 = / · ปุ่ม 3 = - (ใช้เฉพาะเมื่อมีอักษรไทยปน)
+const ASSET_CODE_RX=/^(\d{12}(-\d{1,4})?|\d{16})$/;
+function thaiKeysToEn(s){ return [...s].map(c=>KB_MAP[c]||c).join(''); }
+function fixThaiLayout(t,fromScanner){
+  if(!/[\u0E00-\u0E7F]/.test(t)) return t;
+  let c=thaiKeysToEn(t);
+  let looksCode=c.split(/[\s,]+/).filter(Boolean).every(x=>ASSET_CODE_RX.test(x));
+  if(fromScanner||looksCode){
+    if(!window._kbWarned){ window._kbWarned=1; showToast("เครื่องตั้งแป้นภาษาไทยอยู่ — ระบบแปลงรหัสให้แล้ว (แนะนำสลับเป็นภาษาอังกฤษ)",'warning',3500); }
+    return c;
+  }
+  return t;   // พิมพ์ภาษาไทยเอง (เช่น ชื่อของไม่มีป้าย) → คงไว้ตามเดิม
+}
+function processBarcodeInput(raw,fromScanner){
+  let t=fixThaiLayout(raw.trim(),!!fromScanner); if(!t) return;
   if(t.includes(",")||t.split(/\s+/).length>1) processMultipleBarcodes(t);
   else processBarcode(t);
   document.getElementById("barcodeInput").value="";
@@ -3217,7 +3234,7 @@ localStorage.setItem('${STORAGE_ASSETS}',JSON.stringify(${J(masterData)}));local
   const CODE_RX=/^(\d{12}(-\d{1,4})?|\d{16})$/;
   let tmr=null,lastT=0,prevLen=0,fast=0,slow=0;
   const reset=()=>{ clearTimeout(tmr); tmr=null; fast=0; slow=0; prevLen=0; lastT=0; };
-  const go=()=>{ const v=bi.value; reset(); if(v.trim()) processBarcodeInput(v); };
+  const go=()=>{ const v=bi.value, sc=(fast>=4 && fast>=slow*3); reset(); if(v.trim()) processBarcodeInput(v,sc); };
   bi.addEventListener("keydown",e=>{
     if(e.isComposing) return;
     if(e.key==="Enter"||((e.key==="Tab")&&bi.value.trim())){ e.preventDefault(); go(); }
@@ -3229,7 +3246,7 @@ localStorage.setItem('${STORAGE_ASSETS}',JSON.stringify(${J(masterData)}));local
     if(add>=4) fast+=add; else if(add>0){ if(gap<50) fast++; else slow++; }
     let wait=null;
     if(fast>=4 && fast>=slow*3) wait=200;                 // ความเร็วแบบเครื่องยิง / วางทั้งรหัส
-    else if(CODE_RX.test(v.trim())) wait=1200;             // พิมพ์เองครบรูปแบบเลขครุภัณฑ์
+    else if(CODE_RX.test(v.trim())||CODE_RX.test(thaiKeysToEn(v.trim()))) wait=1200;             // พิมพ์เองครบรูปแบบเลขครุภัณฑ์
     if(wait!==null) tmr=setTimeout(go,wait);
   });
 })();
